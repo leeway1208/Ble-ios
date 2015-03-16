@@ -10,10 +10,9 @@
 		92DBC3181AB689B30093B739 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 92DBC3171AB689B30093B739 /* main.m */; };
 		92DBC31B1AB689B30093B739 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 92DBC31A1AB689B30093B739 /* AppDelegate.m */; };
 		92DBC31E1AB689B30093B739 /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 92DBC31D1AB689B30093B739 /* ViewController.m */; };
-		92DBC3211AB689B30093B739 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 92DBC31F1AB689B30093B739 /* Main.storyboard */; };
 		92DBC3231AB689B30093B739 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 92DBC3221AB689B30093B739 /* Images.xcassets */; };
-		92DBC3261AB689B30093B739 /* LaunchScreen.xib in Resources */ = {isa = PBXBuildFile; fileRef = 92DBC3241AB689B30093B739 /* LaunchScreen.xib */; };
 		92DBC3321AB689B30093B739 /* Ble_iosTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 92DBC3311AB689B30093B739 /* Ble_iosTests.m */; };
+		92DBC33C1AB689C70093B739 /* CoreBluetooth.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 92DBC33B1AB689C70093B739 /* CoreBluetooth.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -34,12 +33,11 @@
 		92DBC31A1AB689B30093B739 /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
 		92DBC31C1AB689B30093B739 /* ViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ViewController.h; sourceTree = "<group>"; };
 		92DBC31D1AB689B30093B739 /* ViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ViewController.m; sourceTree = "<group>"; };
-		92DBC3201AB689B30093B739 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		92DBC3221AB689B30093B739 /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Images.xcassets; sourceTree = "<group>"; };
-		92DBC3251AB689B30093B739 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/LaunchScreen.xib; sourceTree = "<group>"; };
 		92DBC32B1AB689B30093B739 /* Ble-iosTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Ble-iosTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		92DBC3301AB689B30093B739 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		92DBC3311AB689B30093B739 /* Ble_iosTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Ble_iosTests.m; sourceTree = "<group>"; };
+		92DBC33B1AB689C70093B739 /* CoreBluetooth.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreBluetooth.framework; path = System/Library/Frameworks/CoreBluetooth.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -47,6 +45,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				92DBC33C1AB689C70093B739 /* CoreBluetooth.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -63,6 +62,7 @@
 		92DBC3091AB689B30093B739 = {
 			isa = PBXGroup;
 			children = (
+				92DBC33B1AB689C70093B739 /* CoreBluetooth.framework */,
 				92DBC3141AB689B30093B739 /* Ble-ios */,
 				92DBC32E1AB689B30093B739 /* Ble-iosTests */,
 				92DBC3131AB689B30093B739 /* Products */,
@@ -85,9 +85,7 @@
 				92DBC31A1AB689B30093B739 /* AppDelegate.m */,
 				92DBC31C1AB689B30093B739 /* ViewController.h */,
 				92DBC31D1AB689B30093B739 /* ViewController.m */,
-				92DBC31F1AB689B30093B739 /* Main.storyboard */,
 				92DBC3221AB689B30093B739 /* Images.xcassets */,
-				92DBC3241AB689B30093B739 /* LaunchScreen.xib */,
 				92DBC3151AB689B30093B739 /* Supporting Files */,
 			);
 			path = "Ble-ios";
@@ -199,8 +197,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				92DBC3211AB689B30093B739 /* Main.storyboard in Resources */,
-				92DBC3261AB689B30093B739 /* LaunchScreen.xib in Resources */,
 				92DBC3231AB689B30093B739 /* Images.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -242,25 +238,6 @@
 			targetProxy = 92DBC32C1AB689B30093B739 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
-
-/* Begin PBXVariantGroup section */
-		92DBC31F1AB689B30093B739 /* Main.storyboard */ = {
-			isa = PBXVariantGroup;
-			children = (
-				92DBC3201AB689B30093B739 /* Base */,
-			);
-			name = Main.storyboard;
-			sourceTree = "<group>";
-		};
-		92DBC3241AB689B30093B739 /* LaunchScreen.xib */ = {
-			isa = PBXVariantGroup;
-			children = (
-				92DBC3251AB689B30093B739 /* Base */,
-			);
-			name = LaunchScreen.xib;
-			sourceTree = "<group>";
-		};
-/* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
 		92DBC3331AB689B30093B739 /* Debug */ = {
