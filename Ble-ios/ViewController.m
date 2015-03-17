@@ -12,6 +12,7 @@
 @property (strong,nonatomic) CBCentralManager *central;
 @property (copy,nonatomic) NSString *targetPeripheral;
 @property (strong,nonatomic) NSMutableArray *discoveredPeripherals;
+@property (strong,nonatomic) NSMutableDictionary *discoveredPeripheralsDic;
 @property (strong,nonatomic) NSMutableArray *discoveredPeripheralsRssi;
 
 @property (strong,nonatomic) CBPeripheral *connectedPeripheral;
@@ -34,11 +35,12 @@
     self.central = [[CBCentralManager alloc] initWithDelegate:self queue:dispatch_get_global_queue(QOS_CLASS_BACKGROUND, 0)];
     self.discoveredPeripherals = [NSMutableArray new];
     self.discoveredPeripheralsRssi = [NSMutableArray new];
+    self.discoveredPeripheralsDic = [NSMutableDictionary new];
     
     self.deviceInfoUUID = [CBUUID UUIDWithString:@"0x2000"];
     
     [self loadWidget];
-   
+    
 }
 
 -(void) loadWidget{
@@ -89,13 +91,12 @@
     UITableViewCell *cell=[tableView dequeueReusableCellWithIdentifier:reuseIdentifier];
     
     CBPeripheral *peripheral=(CBPeripheral *)self.discoveredPeripherals[indexPath.row];
-    NSNumber *RSSI = (NSNumber *)self.discoveredPeripheralsRssi[indexPath.row];
+    NSNumber *RSSI = (NSNumber *)[self.discoveredPeripheralsDic valueForKey:peripheral.identifier.UUIDString];
+    NSNumberFormatter * numberFormatter = [[NSNumberFormatter alloc] init];
     
     if (cell == nil) {
         cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:reuseIdentifier];
         //        cell.tag = indexPath.row;
-        
-        
         
         
         /**
@@ -113,18 +114,20 @@
         //beacon rssi
         
         _tableRssiLabel = [[UILabel alloc]initWithFrame:CGRectMake( self.view.frame.size.width - 40 , 25, self.view.frame.size.width-30, 20)];
-        NSNumberFormatter * numberFormatter = [[NSNumberFormatter alloc] init];
-        _tableRssiLabel.text =  [numberFormatter stringFromNumber:RSSI];;
+        
+        
+        _tableRssiLabel.text =  [numberFormatter stringFromNumber:RSSI];
+        _tableRssiLabel.tag = 1001;
         [cell addSubview:_tableRssiLabel];
-      
+        // NSLog(@"----> table aready has changed ---> + %@",RSSI);
         
     }
-
     
- 
     
-
-
+    _tableRssiLabel = (UILabel *)[cell viewWithTag:1001];
+    _tableRssiLabel.text =  [numberFormatter stringFromNumber:RSSI];
+    
+    
     
     if ([peripheral.identifier.UUIDString isEqualToString:self.targetPeripheral]) {
         cell.accessoryType=UITableViewCellAccessoryCheckmark;
@@ -184,10 +187,10 @@
         default:
             break;
             
-   
+            
     }
     
-     NSLog(@"Central manager state: %@", state);
+    NSLog(@"Central manager state: %@", state);
 }
 
 /**
@@ -199,13 +202,28 @@
  *  @param RSSI              <#RSSI description#>
  */
 -(void) centralManager:(CBCentralManager *)central didDiscoverPeripheral:(CBPeripheral *)peripheral advertisementData:(NSDictionary *)advertisementData RSSI:(NSNumber *)RSSI {
-    NSLog(@"Discovered peripheral %@ (%@)",peripheral.name,peripheral.identifier.UUIDString);
+    NSLog(@"Discovered peripheral %@ (%@) ---->RSSI : %@",peripheral.name,peripheral.identifier.UUIDString,RSSI);
+    //NSLog(@"advertisementData ---> %@ ",advertisementData);
+    //[self.beaconTableView reloadData];
+    //[self.discoveredPeripheralsDic setObject:RSSI forKey:peripheral];
+    
+    
     if (![self.discoveredPeripherals containsObject:peripheral] ) {
         dispatch_async(dispatch_get_main_queue(), ^{
             [self.discoveredPeripherals addObject:peripheral];
-            [self.discoveredPeripheralsRssi addObject:RSSI];
-            [self.beaconTableView insertRowsAtIndexPaths:@[[NSIndexPath indexPathForRow:self.discoveredPeripherals.count-1 inSection:0]] withRowAnimation:UITableViewRowAnimationLeft];
+            [self.discoveredPeripheralsDic setObject:RSSI forKey:peripheral.identifier.UUIDString];            [self.beaconTableView insertRowsAtIndexPaths:@[[NSIndexPath indexPathForRow:self.discoveredPeripherals.count-1 inSection:0]] withRowAnimation:UITableViewRowAnimationLeft];
+            [self.beaconTableView reloadData];
         });
+    }else{
+        //        if([[self.discoveredPeripheralsDic valueForKey:peripheral.identifier.UUIDString] isEqualToString:peripheral.identifier.UUIDString]){
+        NSLog(@"----> aready has");
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self.discoveredPeripheralsDic setObject:RSSI forKey:peripheral.identifier.UUIDString];
+            NSLog(@"----> count : %@",   [NSString stringWithFormat: @"%d", self.discoveredPeripherals.count]);
+            [self.beaconTableView reloadData];
+        });
+        // }
+        
     }
 }
 
@@ -260,7 +278,7 @@
     for (CBService *service in peripheral.services) {
         //NSLog(@"Discovered service %@",service.description);
         NSLog(@"Discovered service %@",service.UUID);
-
+        
         if ([service.UUID isEqual:self.deviceInfoUUID]) {
             [peripheral discoverCharacteristics:nil forService:service];
         }
@@ -327,11 +345,11 @@
     NSLog(@"Starting scan");
     
     // scanForPeripheralsWithServices:@[[CBUUID UUIDWithString:@"FFE0"]]  (make your own device)
-    [self.central scanForPeripheralsWithServices:nil options:nil];
+    [self.central scanForPeripheralsWithServices:nil options:@{ CBCentralManagerScanOptionAllowDuplicatesKey : @YES, CBCentralManagerOptionRestoreIdentifierKey :@YES }];
 }
 
 -(void) stopScan{
-     NSLog(@"Stop scan");
+    NSLog(@"Stop scan");
     
     [self.central stopScan];
 }
