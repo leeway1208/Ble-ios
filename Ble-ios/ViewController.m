@@ -12,9 +12,12 @@
 @property (strong,nonatomic) CBCentralManager *central;
 @property (copy,nonatomic) NSString *targetPeripheral;
 @property (strong,nonatomic) NSMutableArray *discoveredPeripherals;
+@property (strong,nonatomic) NSMutableArray *checkDiscoveredPeripherals;
 @property (strong,nonatomic) NSMutableDictionary *discoveredPeripheralsDic;
 @property (strong,nonatomic) NSMutableArray *discoveredPeripheralsRssi;
-
+@property (strong,nonatomic) NSArray * noDuplicates;
+/* timer to refresh the table view */
+@property (strong,nonatomic) NSTimer *refreshTableTimer;
 @property (strong,nonatomic) CBPeripheral *connectedPeripheral;
 @property (strong,nonatomic) CBUUID *deviceInfoUUID;
 
@@ -27,6 +30,8 @@
 @end
 #pragma mark - view methods
 @implementation ViewController
+double timerInterval = 5.0f;
+NSInteger *tableNumberConut;
 
 - (void)viewDidLoad {
     [super viewDidLoad];
@@ -36,12 +41,36 @@
     self.discoveredPeripherals = [NSMutableArray new];
     self.discoveredPeripheralsRssi = [NSMutableArray new];
     self.discoveredPeripheralsDic = [NSMutableDictionary new];
+    self.checkDiscoveredPeripherals = [NSMutableArray new];
+    
     
     self.deviceInfoUUID = [CBUUID UUIDWithString:@"0x2000"];
+    
+    
+    
+    //    self.refreshTableTimer = [NSTimer scheduledTimerWithTimeInterval:10.0f target:self selector:@selector(timerRefreshTableSelector:) userInfo:nil repeats:YES];
+    
     
     [self loadWidget];
     
 }
+
+-(void) viewWillAppear:(BOOL)animated {
+    [super viewWillAppear:animated];
+    self.hintLabel.text=@"Not connected";
+}
+
+
+- (void)viewDidDisappear:(BOOL)animated{
+    
+    [self stopTimer];
+    
+}
+-(void)viewWillDisappear:(BOOL)animated{
+    //[self stopTimer];
+}
+
+
 
 -(void) loadWidget{
     _beaconTableView=[[UITableView alloc] initWithFrame:self.view.bounds];
@@ -57,18 +86,46 @@
     [self.view addSubview:_hintLabel];
 }
 
--(void) viewWillAppear:(BOOL)animated {
-    [super viewWillAppear:animated];
-    self.hintLabel.text=@"Not connected";
-}
 
 
 - (void)didReceiveMemoryWarning {
     [super didReceiveMemoryWarning];
     // Dispose of any resources that can be recreated.
 }
+#pragma mark - timer methods
+
+- (NSTimer *) timer {
+    if (!_refreshTableTimer) {
+        _refreshTableTimer = [NSTimer timerWithTimeInterval:timerInterval target:self selector:@selector(timerRefreshTableSelector:) userInfo:nil repeats:YES];
+    }
+    return _refreshTableTimer;
+}
+
+-(void) startTimer{
+    [[NSRunLoop mainRunLoop] addTimer:self.timer forMode:NSRunLoopCommonModes];
+    NSLog(@"timer start...");
+}
 
 
+- (void) stopTimer{
+    if (self.refreshTableTimer != nil){
+        [self.refreshTableTimer invalidate];
+        self.refreshTableTimer = nil;
+        NSLog(@"timer stop...");
+    }
+}
+
+- (void)timerRefreshTableSelector:(NSTimer*)timer{
+    NSLog(@"Tick...");
+    _noDuplicates = [[NSSet setWithArray: _discoveredPeripherals] allObjects];
+    NSLog(@"Tick... %lu",(unsigned long)_noDuplicates.count);
+//    [self.beaconTableView insertRowsAtIndexPaths:@[[NSIndexPath indexPathForRow:_noDuplicates.count-1 inSection:0]] withRowAnimation:UITableViewRowAnimationLeft];
+//    tableNumberConut = noDuplicates.count;
+    [self.beaconTableView reloadData];
+//
+    [self.discoveredPeripherals removeAllObjects];
+    //    NSLog(@"no duplicate array count ---> %lu", (unsigned long)noDuplicates.count);
+}
 
 #pragma mark - UITableViewDataSource methods
 -(NSInteger) numberOfSectionsInTableView:(UITableView *)tableView {
@@ -83,14 +140,17 @@
 
 
 -(NSInteger) tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
-    return self.discoveredPeripherals.count;
+
+    return _noDuplicates.count;
 }
 
 -(UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
     static NSString *reuseIdentifier=@"cell";
     UITableViewCell *cell=[tableView dequeueReusableCellWithIdentifier:reuseIdentifier];
     
-    CBPeripheral *peripheral=(CBPeripheral *)self.discoveredPeripherals[indexPath.row];
+    CBPeripheral *peripheral=(CBPeripheral *)self.noDuplicates[indexPath.row];
+    
+
     NSNumber *RSSI = (NSNumber *)[self.discoveredPeripheralsDic valueForKey:peripheral.identifier.UUIDString];
     NSNumberFormatter * numberFormatter = [[NSNumberFormatter alloc] init];
     
@@ -119,7 +179,7 @@
         _tableRssiLabel.text =  [numberFormatter stringFromNumber:RSSI];
         _tableRssiLabel.tag = 1001;
         [cell addSubview:_tableRssiLabel];
-        // NSLog(@"----> table aready has changed ---> + %@",RSSI);
+        // NSLog(@"----> table already has changed ---> + %@",RSSI);
         
     }
     
@@ -201,31 +261,42 @@
  *  @param advertisementData <#advertisementData description#>
  *  @param RSSI              <#RSSI description#>
  */
+//-(void) centralManager:(CBCentralManager *)central didDiscoverPeripheral:(CBPeripheral *)peripheral advertisementData:(NSDictionary *)advertisementData RSSI:(NSNumber *)RSSI {
+//    //NSLog(@"Discovered peripheral %@ (%@) ---->RSSI : %@",peripheral.name,peripheral.identifier.UUIDString,RSSI);
+//    //NSLog(@"advertisementData ---> %@ ",advertisementData);
+//    //[self.beaconTableView reloadData];
+//    //[self.discoveredPeripheralsDic setObject:RSSI forKey:peripheral];
+//
+//   [self.checkDiscoveredPeripherals addObject:peripheral];
+//    if (![self.discoveredPeripherals containsObject:peripheral] ) {
+//        dispatch_async(dispatch_get_main_queue(), ^{
+//            [self.discoveredPeripherals addObject:peripheral];
+//            [self.discoveredPeripheralsDic setObject:RSSI forKey:peripheral.identifier.UUIDString];            [self.beaconTableView insertRowsAtIndexPaths:@[[NSIndexPath indexPathForRow:self.discoveredPeripherals.count-1 inSection:0]] withRowAnimation:UITableViewRowAnimationLeft];
+//            [self.beaconTableView reloadData];
+//        });
+//    }else{
+//        //NSLog(@"----> already has");
+//        dispatch_async(dispatch_get_main_queue(), ^{
+//            [self.discoveredPeripheralsDic setObject:RSSI forKey:peripheral.identifier.UUIDString];
+//            //        NSLog(@"----> count : %@",   [NSString stringWithFormat: @"%d", self.discoveredPeripherals.count]);
+//            [self.beaconTableView reloadData];
+//        });
+//        // }
+//
+//    }
+//}
 -(void) centralManager:(CBCentralManager *)central didDiscoverPeripheral:(CBPeripheral *)peripheral advertisementData:(NSDictionary *)advertisementData RSSI:(NSNumber *)RSSI {
-    NSLog(@"Discovered peripheral %@ (%@) ---->RSSI : %@",peripheral.name,peripheral.identifier.UUIDString,RSSI);
-    //NSLog(@"advertisementData ---> %@ ",advertisementData);
-    //[self.beaconTableView reloadData];
-    //[self.discoveredPeripheralsDic setObject:RSSI forKey:peripheral];
+
     
-    
-    if (![self.discoveredPeripherals containsObject:peripheral] ) {
         dispatch_async(dispatch_get_main_queue(), ^{
             [self.discoveredPeripherals addObject:peripheral];
-            [self.discoveredPeripheralsDic setObject:RSSI forKey:peripheral.identifier.UUIDString];            [self.beaconTableView insertRowsAtIndexPaths:@[[NSIndexPath indexPathForRow:self.discoveredPeripherals.count-1 inSection:0]] withRowAnimation:UITableViewRowAnimationLeft];
-            [self.beaconTableView reloadData];
-        });
-    }else{
-        //        if([[self.discoveredPeripheralsDic valueForKey:peripheral.identifier.UUIDString] isEqualToString:peripheral.identifier.UUIDString]){
-        NSLog(@"----> aready has");
-        dispatch_async(dispatch_get_main_queue(), ^{
             [self.discoveredPeripheralsDic setObject:RSSI forKey:peripheral.identifier.UUIDString];
-            NSLog(@"----> count : %@",   [NSString stringWithFormat: @"%d", self.discoveredPeripherals.count]);
-            [self.beaconTableView reloadData];
         });
-        // }
-        
-    }
+        NSLog(@"Tick... %lu",(unsigned long)self.discoveredPeripheralsDic.count);
 }
+
+
+
 
 -(void) centralManager:(CBCentralManager *)central didConnectPeripheral:(CBPeripheral *)peripheral {
     self.connectedPeripheral=peripheral;
@@ -304,8 +375,8 @@
     for (CBCharacteristic *characteristic in service.characteristics ) {
         NSLog(@"Discovered characteristic %@(%@)",characteristic.description,characteristic.UUID.UUIDString);
         if ([characteristic.UUID.UUIDString isEqualToString:@"2005"]) {
-            //[peripheral readValueForCharacteristic:characteristic];
-            [peripheral setNotifyValue:YES forCharacteristic:characteristic];
+            [peripheral readValueForCharacteristic:characteristic];
+            //[peripheral setNotifyValue:YES forCharacteristic:characteristic];
         }
     }
 }
@@ -343,9 +414,10 @@
  */
 -(void) startScan {
     NSLog(@"Starting scan");
-    
+    [self startTimer];
     // scanForPeripheralsWithServices:@[[CBUUID UUIDWithString:@"FFE0"]]  (make your own device)
-    [self.central scanForPeripheralsWithServices:nil options:@{ CBCentralManagerScanOptionAllowDuplicatesKey : @YES, CBCentralManagerOptionRestoreIdentifierKey :@YES }];
+    //CBCentralManagerOptionRestoreIdentifierKey :@YES
+    [self.central scanForPeripheralsWithServices:nil options:@{ CBCentralManagerScanOptionAllowDuplicatesKey : @YES,CBCentralManagerOptionRestoreIdentifierKey :@YES}];
 }
 
 -(void) stopScan{
