@@ -11,11 +11,11 @@
 @interface ViewController ()
 @property (strong,nonatomic) CBCentralManager *central;
 @property (copy,nonatomic) NSString *targetPeripheral;
-@property (strong,nonatomic) NSMutableArray *discoveredPeripherals;
-@property (strong,nonatomic) NSMutableArray *checkDiscoveredPeripherals;
-@property (strong,nonatomic) NSMutableDictionary *discoveredPeripheralsDic;
-@property (strong,nonatomic) NSMutableArray *discoveredPeripheralsRssi;
-@property (strong,nonatomic) NSArray * noDuplicates;
+@property (retain,nonatomic) NSMutableArray *discoveredPeripherals;
+@property (retain,nonatomic) NSMutableArray *checkDiscoveredPeripherals;
+@property (retain,nonatomic) NSMutableDictionary *discoveredPeripheralsDic;
+@property (retain,nonatomic) NSMutableArray *discoveredPeripheralsRssi;
+@property (retain,nonatomic) NSArray * noDuplicates;
 /* timer to refresh the table view */
 @property (strong,nonatomic) NSTimer *refreshTableTimer;
 @property (strong,nonatomic) CBPeripheral *connectedPeripheral;
@@ -52,7 +52,7 @@ NSInteger *tableNumberConut;
     
     
     [self loadWidget];
-    
+    [self startTimer];
 }
 
 -(void) viewWillAppear:(BOOL)animated {
@@ -116,14 +116,16 @@ NSInteger *tableNumberConut;
 }
 
 - (void)timerRefreshTableSelector:(NSTimer*)timer{
-    NSLog(@"Tick...");
-    _noDuplicates = [[NSSet setWithArray: _discoveredPeripherals] allObjects];
-    NSLog(@"Tick... %lu",(unsigned long)_noDuplicates.count);
-//    [self.beaconTableView insertRowsAtIndexPaths:@[[NSIndexPath indexPathForRow:_noDuplicates.count-1 inSection:0]] withRowAnimation:UITableViewRowAnimationLeft];
-//    tableNumberConut = noDuplicates.count;
+    [self stopScan];
+    NSLog(@"Tick   11111 ... %lu",self.discoveredPeripherals.count);
+    _noDuplicates = [[NSSet setWithArray: self.discoveredPeripherals] allObjects];
+    NSLog(@"Tick  22222 ... %lu",(unsigned long)_noDuplicates.count);
+    //    [self.beaconTableView insertRowsAtIndexPaths:@[[NSIndexPath indexPathForRow:_noDuplicates.count-1 inSection:0]] withRowAnimation:UITableViewRowAnimationLeft];
+    //    tableNumberConut = noDuplicates.count;
     [self.beaconTableView reloadData];
-//
+    //
     [self.discoveredPeripherals removeAllObjects];
+    [self startScan];
     //    NSLog(@"no duplicate array count ---> %lu", (unsigned long)noDuplicates.count);
 }
 
@@ -140,7 +142,7 @@ NSInteger *tableNumberConut;
 
 
 -(NSInteger) tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
-
+    
     return _noDuplicates.count;
 }
 
@@ -150,7 +152,7 @@ NSInteger *tableNumberConut;
     
     CBPeripheral *peripheral=(CBPeripheral *)self.noDuplicates[indexPath.row];
     
-
+    
     NSNumber *RSSI = (NSNumber *)[self.discoveredPeripheralsDic valueForKey:peripheral.identifier.UUIDString];
     NSNumberFormatter * numberFormatter = [[NSNumberFormatter alloc] init];
     
@@ -286,13 +288,15 @@ NSInteger *tableNumberConut;
 //    }
 //}
 -(void) centralManager:(CBCentralManager *)central didDiscoverPeripheral:(CBPeripheral *)peripheral advertisementData:(NSDictionary *)advertisementData RSSI:(NSNumber *)RSSI {
-
     
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [self.discoveredPeripherals addObject:peripheral];
-            [self.discoveredPeripheralsDic setObject:RSSI forKey:peripheral.identifier.UUIDString];
-        });
-        NSLog(@"Tick... %lu",(unsigned long)self.discoveredPeripheralsDic.count);
+    
+    NSLog(@"Discovered peripheral %@ (%@) ---->RSSI : %@",peripheral.name,peripheral.identifier.UUIDString,RSSI);
+    [self.discoveredPeripherals addObject:peripheral];
+    [self.discoveredPeripheralsDic setObject:RSSI forKey:peripheral.identifier.UUIDString];
+    
+    //NSLog(@"Tick... %lu",(unsigned long)self.discoveredPeripherals.count);
+    
+    
 }
 
 
@@ -414,10 +418,10 @@ NSInteger *tableNumberConut;
  */
 -(void) startScan {
     NSLog(@"Starting scan");
-    [self startTimer];
+    
     // scanForPeripheralsWithServices:@[[CBUUID UUIDWithString:@"FFE0"]]  (make your own device)
-    //CBCentralManagerOptionRestoreIdentifierKey :@YES
-    [self.central scanForPeripheralsWithServices:nil options:@{ CBCentralManagerScanOptionAllowDuplicatesKey : @YES,CBCentralManagerOptionRestoreIdentifierKey :@YES}];
+    //CBCentralManagerOptionRestoreIdentifierKey :@YES @{ CBCentralManagerScanOptionAllowDuplicatesKey : @YES}
+    [self.central scanForPeripheralsWithServices:nil options:@{CBCentralManagerScanOptionAllowDuplicatesKey:@NO}];
 }
 
 -(void) stopScan{
