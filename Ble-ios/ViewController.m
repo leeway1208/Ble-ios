@@ -206,7 +206,7 @@ NSInteger *tableNumberConut;
 
 -(void) tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
     
-    CBPeripheral *targetPeripheral=(CBPeripheral *)self.discoveredPeripherals[indexPath.row];
+    CBPeripheral *targetPeripheral=(CBPeripheral *)self.noDuplicates[indexPath.row];
     if (![self.targetPeripheral isEqualToString:targetPeripheral.identifier.UUIDString]) {
         if (self.connectedPeripheral) {
             [self.central cancelPeripheralConnection:self.connectedPeripheral];
@@ -308,6 +308,7 @@ NSInteger *tableNumberConut;
     peripheral.delegate=self;
     
     [self stopScan];
+    [self stopTimer];
     //[peripheral discoverServices:@[firstServiceUUID, secondServiceUUID]];
     //[peripheral discoverServices:@[self.deviceInfoUUID]];
     [peripheral discoverServices:nil];
@@ -379,8 +380,9 @@ NSInteger *tableNumberConut;
     for (CBCharacteristic *characteristic in service.characteristics ) {
         NSLog(@"Discovered characteristic %@(%@)",characteristic.description,characteristic.UUID.UUIDString);
         if ([characteristic.UUID.UUIDString isEqualToString:@"2005"]) {
-            [peripheral readValueForCharacteristic:characteristic];
+            //[peripheral readValueForCharacteristic:characteristic];
             //[peripheral setNotifyValue:YES forCharacteristic:characteristic];
+            [peripheral writeValue:[self stringToByte:@"C3A60D00"]forCharacteristic:characteristic type:CBCharacteristicWriteWithResponse];
         }
     }
 }
@@ -393,9 +395,24 @@ NSInteger *tableNumberConut;
  *  @param error          <#error description#>
  */
 -(void) peripheral:(CBPeripheral *)peripheral didUpdateValueForCharacteristic:(CBCharacteristic *)characteristic error:(NSError *)error {
-    NSString *manf=[[NSString alloc] initWithData:characteristic.value encoding:NSUTF8StringEncoding];
+    
+    if ([characteristic.UUID isEqual:[CBUUID UUIDWithString:@"2005"]])
+    {
+        if( (characteristic.value)  || !error )
+        {
+            NSLog(@"didDiscoverCharacteristicsForService --- > %@", characteristic.value);
+
+        }
+    }
+    
+    //NSString *manf=[[NSString alloc] initWithData:characteristic.value encoding:NSUTF8StringEncoding];
+
+    NSString *manf = NSDataToHex(characteristic.value);
+    NSLog(@"didDiscoverCharacteristicsForService --- > %@", manf);
+
+    //NSLog(@"didDiscoverCharacteristicsForService --- > %@", manf);
     dispatch_async(dispatch_get_main_queue(), ^{
-        self.hintLabel.text=manf;
+        self.hintLabel.text = manf;
     });
     UIApplication *app=[UIApplication sharedApplication];
     if (app.applicationState == UIApplicationStateBackground) {
@@ -408,6 +425,83 @@ NSInteger *tableNumberConut;
         }
     }
     
+}
+
+/**
+ *  write response
+ *
+ *  @param peripheral     <#peripheral description#>
+ *  @param characteristic <#characteristic description#>
+ *  @param error          <#error description#>
+ */
+- (void)peripheral:(CBPeripheral *)peripheral didWriteValueForCharacteristic:(CBCharacteristic *)characteristic error:(NSError *)error{
+    if (error) {
+        NSLog(@"Error writing characteristic value: %@",
+              [error localizedDescription]);
+    }
+     NSLog(@"write successfully !!! ");
+}
+
+#pragma mark - hex data to string
+static inline char itoh(int i) {
+    if (i > 9) return 'A' + (i - 10);
+    return '0' + i;
+}
+
+NSString * NSDataToHex(NSData *data) {
+    NSUInteger i, len;
+    unsigned char *buf, *bytes;
+    
+    len = data.length;
+    bytes = data.bytes;
+    buf = malloc(len*2);
+    
+    for (i=0; i<len; i++) {
+        buf[i*2] = itoh((bytes[i] >> 4) & 0xF);
+        buf[i*2+1] = itoh(bytes[i] & 0xF);
+    }
+    
+    return [[NSString alloc] initWithBytesNoCopy:buf
+                                          length:len*2
+                                        encoding:NSASCIIStringEncoding
+                                    freeWhenDone:YES];
+}
+
+
+#pragma mark - hex string to data
+-(NSData*)stringToByte:(NSString*)string
+{
+    NSString *hexString=[[string uppercaseString] stringByReplacingOccurrencesOfString:@" " withString:@""];
+    if ([hexString length]%2!=0) {
+        return nil;
+    }
+    Byte tempbyt[1]={0};
+    NSMutableData* bytes=[NSMutableData data];
+    for(int i=0;i<[hexString length];i++)
+    {
+        unichar hex_char1 = [hexString characterAtIndex:i]; ////两位16进制数中的第一位(高位*16)
+        int int_ch1;
+        if(hex_char1 >= '0' && hex_char1 <='9')
+            int_ch1 = (hex_char1-48)*16;   //// 0 的Ascll - 48
+        else if(hex_char1 >= 'A' && hex_char1 <='F')
+            int_ch1 = (hex_char1-55)*16; //// A 的Ascll - 65
+        else
+            return nil;
+        i++;
+        
+        unichar hex_char2 = [hexString characterAtIndex:i]; ///两位16进制数中的第二位(低位)
+        int int_ch2;
+        if(hex_char2 >= '0' && hex_char2 <='9')
+            int_ch2 = (hex_char2-48); //// 0 的Ascll - 48
+        else if(hex_char2 >= 'A' && hex_char2 <='F')
+            int_ch2 = hex_char2-55; //// A 的Ascll - 65
+        else
+            return nil;
+        
+        tempbyt[0] = int_ch1+int_ch2;  ///将转化后的数放入Byte数组里
+        [bytes appendBytes:tempbyt length:1];
+    }
+    return bytes;
 }
 
 
